@@ -161,4 +161,40 @@ r.get('/:id', async (req, res) => {
   res.json(inv);
 });
 
+/**
+ * Update invoice payment status
+ * PATCH /api/v1/invoices/:id/status
+ * body: { paymentStatus: PaymentStatus }
+ */
+r.patch('/:id/status', async (req, res) => {
+  try {
+    const orgId = req.headers['x-org-id'] as string;
+    const { id } = req.params;
+    const { paymentStatus } = req.body;
+
+    if (!orgId) {
+      return res.status(400).json({ error: 'org_id_required' });
+    }
+
+    if (!paymentStatus) {
+      return res.status(400).json({ error: 'payment_status_required' });
+    }
+
+    const validStatuses = ['UNPAID', 'PARTIAL', 'PAID'];
+    if (!validStatuses.includes(paymentStatus)) {
+      return res.status(400).json({ error: 'invalid_payment_status' });
+    }
+
+    const invoice = await prisma.invoice.update({
+      where: { id, organizationId: orgId },
+      data: { paymentStatus: paymentStatus as PaymentStatus }
+    });
+
+    return res.json(invoice);
+  } catch (err) {
+    console.error('Update invoice status failed:', err);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
 export default r;

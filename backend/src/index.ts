@@ -15,6 +15,8 @@ import dashboard from './routes/dashboard';
 import pdf from './routes/pdf';
 import uploads from './routes/uploads';
 import auth from './routes/auth';
+import glassRates from './routes/glass-rates';
+import processMaster from './routes/process-master';
 
 import { requireAuth } from './middleware/auth';
 import { requireOrg } from './middleware/org';
@@ -61,6 +63,8 @@ app.use('/api/v1', (req, _res, next) => {
 app.use('/api/v1/quotes', requireAuth, requireOrg, quotes);
 app.use('/api/v1/orders', requireAuth, requireOrg, orders);
 app.use('/api/v1/invoices', requireAuth, requireOrg, invoices);
+app.use('/api/v1/admin/glass-rates', requireAuth, requireOrg, glassRates);
+app.use('/api/v1/admin/process-master', requireAuth, requireOrg, processMaster);
 app.use('/api/v1/admin', requireAuth, requireOrg, admin);
 app.use('/api/v1/customers', requireAuth, requireOrg, customers);
 app.use('/api/v1/organization', requireAuth, requireOrg, organization);

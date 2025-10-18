@@ -117,6 +117,8 @@ model Organization {
   orders     Order[]
   invoices   Invoice[]
   payments   Payment[]
+  glassRates GlassRate[]
+  processMasters ProcessMaster[]
 }
 
 model OrganizationUser {
@@ -274,6 +276,23 @@ model Order {
   balanceAmount  Decimal?    @default(0)
   notes          String?
   customFields   Json?
+  
+  // Additional fields for Excel logic
+  clientName     String?
+  clientAddress  String?
+  deliveryDate   DateTime?
+  priority       String?  // "Normal", "Urgent", "Very Urgent"
+  orderType      String?  // "Sketch", "Farma", "Drawing", "Sample", "DWG"
+  paymentStatus  String?  // Custom status values
+  
+  // Financial fields
+  subtotal       Decimal? @default(0)
+  deliveryCharge Decimal? @default(0)
+  loadingCharge  Decimal? @default(0)
+  labourCharge   Decimal? @default(0)
+  fittingsCharge Decimal? @default(0)
+  additionalCharge Decimal? @default(0)
+  billAmount     Decimal? @default(0)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   client       Client?      @relation(fields: [clientId], references: [id])
@@ -299,8 +318,45 @@ model OrderItem {
   lineTotal      Decimal?  @default(0)
   processes      Json?
   customFields   Json?
+  
+  // Enhanced fields for Excel calculation logic
+  glassType      String?   // Lookup key for GlassRate
+  
+  // Dimensions - stored in both units
+  widthMm        Decimal?
+  heightMm       Decimal?
+  widthInch      Decimal?
+  heightInch     Decimal?
+  
+  // Calculated dimensions (with rounding)
+  heightFt       Decimal?
+  sqFt           Decimal?
+  
+  // Calculated values
+  totalArea      Decimal?  // sqFt * quantity
+  totalLength    Decimal?  // perimeter * quantity
+  
+  // Perimeter coefficients (default to 1)
+  perimeterCoeffW Decimal? @default(1)
+  perimeterCoeffH Decimal? @default(1)
+  
+  // Glass pricing
+  glassFixedRate  Decimal?  // Looked up from GlassRate
+  glassDiscountRate Decimal?  // Optional override
+  baseGlassPrice  Decimal?
+  
+  // Process costs
+  totalProcessCost Decimal? @default(0)
+  
+  // Additional fields
+  sketchNo       String?
+  remarks        String?
+  status         String?
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  @@index([orderId])
+  @@index([organizationId])
 }
 
 model Invoice {
@@ -335,4 +391,65 @@ model Payment {
 
   invoice      Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model GlassRate {
+  id             String   @id @default(cuid())
+  organizationId String
+  glassType      String   // e.g., "Clear Float", "Tinted", "Laminated"
+  
+  // Rates for different thicknesses (in ₹ per sq.ft)
+  rate_3_5mm     Decimal?
+  rate_4mm       Decimal?
+  rate_5mm       Decimal?
+  rate_6mm       Decimal?
+  rate_8mm       Decimal?
+  rate_10mm      Decimal?
+  rate_12mm      Decimal?
+  rate_19mm      Decimal?
+  rate_dgu       Decimal?
+  
+  // Custom thickness columns
+  customRates    Json?    // { "15mm": 120.50, "25mm": 180.00 }
+  
+  notes          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@unique([organizationId, glassType])
+  @@index([organizationId, glassType])
+}
+
+model ProcessMaster {
+  id             String   @id @default(cuid())
+  organizationId String
+  processCode    String   // Short code for lookup (e.g., "BP", "TMP", "EDG")
+  name           String   // Display name
+  
+  // Pricing type: 'F' (Fixed/per-piece), 'A' (per-Area), 'L' (per-Length)
+  pricingType    String   // 'F', 'A', or 'L'
+  
+  // Rates for different rate columns (matching Excel columns T, A, L, F, S, W, Y, Z, COL)
+  rateT          Decimal?
+  rateA          Decimal?
+  rateL          Decimal?
+  rateF          Decimal?
+  rateS          Decimal?
+  rateW          Decimal?
+  rateY          Decimal?
+  rateZ          Decimal?
+  rateCOL        Decimal?
+  
+  remarks        String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@unique([organizationId, processCode])
+  @@index([organizationId, processCode])
 }

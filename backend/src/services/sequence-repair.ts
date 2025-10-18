@@ -23,7 +23,7 @@ export async function repairNumberSequence(organizationId: string, docType: stri
         
         quotes.forEach(quote => {
           const match = quote.quoteNo.match(/Q\d{4}-(\d{4})/);
-          if (match) {
+          if (match && match[1]) {
             const num = parseInt(match[1], 10);
             if (num > highestNumber) highestNumber = num;
           }
@@ -41,7 +41,7 @@ export async function repairNumberSequence(organizationId: string, docType: stri
         
         orders.forEach(order => {
           const match = order.orderNo.match(/O\d{4}-(\d{4})/);
-          if (match) {
+          if (match && match[1]) {
             const num = parseInt(match[1], 10);
             if (num > highestNumber) highestNumber = num;
           }
@@ -59,7 +59,7 @@ export async function repairNumberSequence(organizationId: string, docType: stri
         
         invoices.forEach(invoice => {
           const match = invoice.invoiceNo.match(/INV\d{4}-(\d{4})/);
-          if (match) {
+          if (match && match[1]) {
             const num = parseInt(match[1], 10);
             if (num > highestNumber) highestNumber = num;
           }
@@ -108,7 +108,7 @@ export async function repairAllSequences(organizationId: string) {
       results.push({ docType, nextNumber: nextNum, status: 'repaired' });
     } catch (error) {
       console.error(`Failed to repair ${docType} sequence:`, error);
-      results.push({ docType, error: error.message, status: 'failed' });
+      results.push({ docType, error: error instanceof Error ? error.message : 'Unknown error', status: 'failed' });
     }
   }
   

@@ -49,7 +49,7 @@ async function issueToken(userId: string, explicitDefaultOrgId?: string) {
 function zodError(res: any, e: unknown) {
   if (e instanceof z.ZodError) {
     console.error('Validation error:', e.flatten());
-    const firstError = e.errors[0];
+    const firstError = e.issues[0];
     const errorMessage = firstError ? `${firstError.path.join('.')}: ${firstError.message}` : 'Invalid request data';
     return res.status(400).json({ 
       error: errorMessage,
