@@ -1,0 +1,338 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL_APP")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL_APP")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  VIEWER
+}
+
+enum PriceRule {
+  PER_AREA
+  PER_EDGE
+  FLAT
+}
+
+enum QuoteStatus {
+  DRAFT
+  FINALIZED
+  CANCELLED
+}
+
+enum OrderStatus {
+  NEW
+  CONFIRMED
+  IN_PRODUCTION
+  READY
+  DELIVERED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String   @default("")
+  orgUsers     OrganizationUser[]
+  createdAt    DateTime @default(now())
+}
+
+model Organization {
+  id         String   @id @default(cuid())
+  name       String
+  slug       String   @unique
+  settings   Json
+  
+  // Basic Company Information
+  companyType        String?  // Private Limited, Partnership, Sole Proprietorship, etc.
+  industry           String?  // Glass Manufacturing, Construction, etc.
+  foundedYear        Int?
+  employeeCount      String?  // 1-10, 11-50, 51-200, etc.
+  annualRevenue      String?  // Revenue range
+  
+  // Contact Information
+  email              String?
+  phone              String?
+  website            String?
+  
+  // Address Information
+  address            Json?    // Street, City, State, Country, Pincode
+  billingAddress     Json?    // If different from main address
+  
+  // Business Registration Details
+  registrationNumber String?  // Company registration number
+  gstNumber          String?  // GST registration number
+  panNumber          String?  // PAN number
+  cinNumber          String?  // Corporate Identification Number
+  
+  // Banking Information
+  bankDetails        Json?    // Bank name, account number, IFSC, etc.
+  
+  // Business Details
+  description        String?  // Company description
+  specializations    Json?    // Array of specializations
+  certifications     Json?    // Array of certifications
+  
+  // Operational Details
+  workingHours       Json?    // Operating hours
+  timeZone           String?  // Business timezone
+  currency           String?  @default("INR")
+  
+  // Social Media & Online Presence
+  socialMedia        Json?    // LinkedIn, Facebook, etc.
+  
+  // Additional Information
+  logo               String?  // Logo URL
+  documents          Json?    // Array of uploaded documents
+  notes              String?  // Additional notes
+  
+  // System Settings
+  maxUsers           Int      @default(2)  // Maximum users allowed
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @default(now()) @updatedAt
+  
+  users      OrganizationUser[]
+  clients    Client[]
+  products   Product[]
+  processes  ProcessDefinition[]
+  settingsKV Setting[]
+  workflows  WorkflowTemplate[]
+  numbers    NumberSequence[]
+  taxes      TaxRate[]
+  quotes     Quote[]
+  orders     Order[]
+  invoices   Invoice[]
+  payments   Payment[]
+}
+
+model OrganizationUser {
+  id             String @id @default(cuid())
+  organizationId String
+  userId         String
+  role           Role   @default(STAFF)
+  permissions    Json?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+}
+
+model Client {
+  id              String @id @default(cuid())
+  organizationId  String
+  name            String
+  phone           String?
+  gstNumber       String?
+  billingAddress  Json?
+  shippingAddress Json?
+  customFields    Json?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  quotes       Quote[]
+  orders       Order[]
+}
+
+model Product {
+  id             String  @id @default(cuid())
+  organizationId String
+  name           String
+  thicknessMm    Decimal?
+  unitPrice      Decimal?
+  attributes     Json?
+  notes          String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model ProcessDefinition {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  priceRule      PriceRule
+  rate           Decimal
+  unit           String?
+  attributes     Json?
+  notes          String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model Setting {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  value          Decimal?
+  text           String?
+  meta           Json?
+
+  @@unique([organizationId, key])
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model WorkflowTemplate {
+  id             String   @id @default(cuid())
+  organizationId String
+  entity         String
+  name           String
+  states         Json
+  transitions    Json
+  initialState   String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model NumberSequence {
+  id             String   @id @default(cuid())
+  organizationId String
+  docType        String
+  pattern        String
+  nextNumber     Int      @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, docType])
+}
+
+model TaxRate {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  rate           Decimal
+  scope          String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model Quote {
+  id             String       @id @default(cuid())
+  organizationId String
+  quoteNo        String
+  clientId       String?
+  date           DateTime?
+  status         QuoteStatus  @default(DRAFT)
+  contactPhone   String?
+  gstNumber      String?
+  subtotal       Decimal?     @default(0)
+  tax            Decimal?     @default(0)
+  total          Decimal?     @default(0)
+  notes          String?
+  customFields   Json?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client?      @relation(fields: [clientId], references: [id])
+  items        QuoteItem[]
+
+  @@unique([organizationId, quoteNo])
+}
+
+model QuoteItem {
+  id             String  @id @default(cuid())
+  organizationId String
+  quoteId        String
+  productId      String?
+  productName    String
+  thicknessMm    Decimal?
+  lengthFt       Decimal?
+  widthFt        Decimal?
+  qty            Int       @default(1)
+  unitPrice      Decimal?
+  processCost    Decimal?  @default(0)
+  areaSqFt       Decimal?  @default(0)
+  lineTotal      Decimal?  @default(0)
+  processes      Json?
+  customFields   Json?
+
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  organizationId String
+  orderNo        String
+  clientId       String?
+  status         OrderStatus @default(NEW)
+  orderDate      DateTime?
+  phone          String?
+  gstNumber      String?
+  advanceAmount  Decimal?    @default(0)
+  balanceAmount  Decimal?    @default(0)
+  notes          String?
+  customFields   Json?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client?      @relation(fields: [clientId], references: [id])
+  items        OrderItem[]
+  invoices     Invoice[]
+
+  @@unique([organizationId, orderNo])
+}
+
+model OrderItem {
+  id             String  @id @default(cuid())
+  organizationId String
+  orderId        String
+  productId      String?
+  productName    String
+  thicknessMm    Decimal?
+  lengthFt       Decimal?
+  widthFt        Decimal?
+  qty            Int       @default(1)
+  unitPrice      Decimal?
+  processCost    Decimal?  @default(0)
+  areaSqFt       Decimal?  @default(0)
+  lineTotal      Decimal?  @default(0)
+  processes      Json?
+  customFields   Json?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id             String         @id @default(cuid())
+  organizationId String
+  invoiceNo      String
+  orderId        String?
+  date           DateTime?
+  subtotal       Decimal?       @default(0)
+  taxBreakdown   Json?
+  total          Decimal?       @default(0)
+  paymentStatus  PaymentStatus  @default(UNPAID)
+  notes          String?
+  customFields   Json?
+
+  order    Order?    @relation(fields: [orderId], references: [id])
+  payments Payment[]
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, invoiceNo])
+}
+
+model Payment {
+  id             String   @id @default(cuid())
+  organizationId String
+  invoiceId      String
+  date           DateTime @default(now())
+  amount         Decimal
+  method         String?
+  reference      String?
+
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
