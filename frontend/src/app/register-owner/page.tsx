@@ -21,9 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Building2, User, Mail, Lock, Phone, Globe, MapPin, 
-  FileText, CreditCard, Briefcase, Calendar, Users,
+import {
+  Building2, User, Mail, Lock, Phone, MapPin,
+  FileText, Briefcase,
   ArrowRight, ArrowLeft, Check
 } from 'lucide-react';
 import Link from 'next/link';
@@ -46,12 +46,12 @@ const organizationSchema = z.object({
   foundedYear: z.coerce.number().min(1900).max(new Date().getFullYear()).optional(),
   employeeCount: z.string().optional(),
   annualRevenue: z.string().optional(),
-  
+
   // Contact Information
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional(),
   website: z.string().url().optional().or(z.literal('')),
-  
+
   // Address
   address: z.object({
     street: z.string().optional(),
@@ -60,17 +60,17 @@ const organizationSchema = z.object({
     country: z.string().default('India'),
     pincode: z.string().optional(),
   }).optional(),
-  
+
   // Business Registration
   registrationNumber: z.string().optional(),
   gstNumber: z.string().optional(),
   panNumber: z.string().optional(),
   cinNumber: z.string().optional(),
-  
+
   // Business Details
   description: z.string().optional(),
   specializations: z.array(z.string()).optional(),
-  
+
   // Operational
   timeZone: z.string().default('Asia/Kolkata'),
   currency: z.string().default('INR'),
@@ -172,11 +172,27 @@ export default function RegisterOwnerPage() {
 
       localStorage.setItem('token', response.token);
       localStorage.setItem('orgId', response.organization.id);
-      
+
       toast.success('Registration successful! Welcome to Glass ERP');
       router.push('/dashboard');
     } catch (error: any) {
-      const message = error?.response?.json?.()?.error || 'Registration failed. Please try again.';
+      console.error('Registration error:', error);
+
+      // Handle ky HTTPError
+      let message = 'Registration failed. Please try again.';
+
+      if (error.response) {
+        try {
+          const errorData = await error.response.json();
+          message = errorData.error || errorData.message || message;
+        } catch (e) {
+          // If JSON parsing fails, use status text
+          message = error.response.statusText || message;
+        }
+      } else if (error.message) {
+        message = error.message;
+      }
+
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -189,16 +205,15 @@ export default function RegisterOwnerPage() {
         const Icon = step.icon;
         const isActive = currentStep === step.id;
         const isCompleted = currentStep > step.id;
-        
+
         return (
           <div key={step.id} className="flex items-center">
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-              isActive 
-                ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                : isCompleted 
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${isActive
+                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                : isCompleted
                   ? 'bg-green-50 text-green-700 border border-green-200'
                   : 'bg-gray-50 text-gray-500 border border-gray-200'
-            }`}>
+              }`}>
               <Icon className="h-4 w-4" />
               <span className="text-sm font-medium hidden sm:block">{step.title}</span>
             </div>
@@ -217,7 +232,7 @@ export default function RegisterOwnerPage() {
       <div className="min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-2xl mx-auto">
           {renderStepIndicator()}
-          
+
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Create Your Account</CardTitle>
@@ -328,7 +343,7 @@ export default function RegisterOwnerPage() {
       <div className="min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-4xl mx-auto">
           {renderStepIndicator()}
-          
+
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Organization Details</CardTitle>
@@ -338,268 +353,268 @@ export default function RegisterOwnerPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={orgForm.handleSubmit(onBasicOrgSubmit)} className="space-y-8">
-              {/* Basic Information */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Building2 className="h-5 w-5" />
-                  Basic Information
-                </h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Organization Name *</Label>
-                    <Input
-                      id="name"
-                      placeholder="e.g., ABC Glass Industries"
-                      {...orgForm.register('name')}
-                    />
-                    {orgForm.formState.errors.name && (
-                      <p className="text-sm text-destructive">
-                        {orgForm.formState.errors.name.message}
-                      </p>
-                    )}
-                  </div>
+                {/* Basic Information */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Basic Information
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Organization Name *</Label>
+                      <Input
+                        id="name"
+                        placeholder="e.g., ABC Glass Industries"
+                        {...orgForm.register('name')}
+                      />
+                      {orgForm.formState.errors.name && (
+                        <p className="text-sm text-destructive">
+                          {orgForm.formState.errors.name.message}
+                        </p>
+                      )}
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label>Company Type</Label>
-                    <Select onValueChange={(value) => orgForm.setValue('companyType', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select company type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {companyTypes.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div className="space-y-2">
+                      <Label>Company Type</Label>
+                      <Select onValueChange={(value) => orgForm.setValue('companyType', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select company type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {companyTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label>Industry</Label>
-                    <Select onValueChange={(value) => orgForm.setValue('industry', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select industry" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {industries.map((industry) => (
-                          <SelectItem key={industry} value={industry}>
-                            {industry}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div className="space-y-2">
+                      <Label>Industry</Label>
+                      <Select onValueChange={(value) => orgForm.setValue('industry', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select industry" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {industries.map((industry) => (
+                            <SelectItem key={industry} value={industry}>
+                              {industry}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label>Founded Year</Label>
-                    <Input
-                      type="number"
-                      placeholder="e.g., 2020"
-                      min="1900"
-                      max={new Date().getFullYear()}
-                      {...orgForm.register('foundedYear')}
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label>Founded Year</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g., 2020"
+                        min="1900"
+                        max={new Date().getFullYear()}
+                        {...orgForm.register('foundedYear')}
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label>Employee Count</Label>
-                    <Select onValueChange={(value) => orgForm.setValue('employeeCount', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select employee count" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {employeeCounts.map((count) => (
-                          <SelectItem key={count} value={count}>
-                            {count}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div className="space-y-2">
+                      <Label>Employee Count</Label>
+                      <Select onValueChange={(value) => orgForm.setValue('employeeCount', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select employee count" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {employeeCounts.map((count) => (
+                            <SelectItem key={count} value={count}>
+                              {count}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label>Annual Revenue</Label>
-                    <Select onValueChange={(value) => orgForm.setValue('annualRevenue', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select revenue range" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {revenueRanges.map((range) => (
-                          <SelectItem key={range} value={range}>
-                            {range}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Contact Information */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Phone className="h-5 w-5" />
-                  Contact Information
-                </h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Business Email</Label>
-                    <Input
-                      type="email"
-                      placeholder="contact@company.com"
-                      {...orgForm.register('email')}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Phone Number</Label>
-                    <Input
-                      placeholder="+91 9876543210"
-                      {...orgForm.register('phone')}
-                    />
-                  </div>
-
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Website</Label>
-                    <Input
-                      placeholder="https://www.company.com"
-                      {...orgForm.register('website')}
-                    />
+                    <div className="space-y-2">
+                      <Label>Annual Revenue</Label>
+                      <Select onValueChange={(value) => orgForm.setValue('annualRevenue', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select revenue range" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {revenueRanges.map((range) => (
+                            <SelectItem key={range} value={range}>
+                              {range}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <Separator />
+                <Separator />
 
-              {/* Address Information */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Business Address
-                </h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Street Address</Label>
-                    <Input
-                      placeholder="Street address"
-                      {...orgForm.register('address.street')}
-                    />
+                {/* Contact Information */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Phone className="h-5 w-5" />
+                    Contact Information
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Business Email</Label>
+                      <Input
+                        type="email"
+                        placeholder="contact@company.com"
+                        {...orgForm.register('email')}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Phone Number</Label>
+                      <Input
+                        placeholder="+91 9876543210"
+                        {...orgForm.register('phone')}
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>Website</Label>
+                      <Input
+                        placeholder="https://www.company.com"
+                        {...orgForm.register('website')}
+                      />
+                    </div>
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label>City</Label>
-                    <Input
-                      placeholder="City"
-                      {...orgForm.register('address.city')}
-                    />
+                <Separator />
+
+                {/* Address Information */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Business Address
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>Street Address</Label>
+                      <Input
+                        placeholder="Street address"
+                        {...orgForm.register('address.street')}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>City</Label>
+                      <Input
+                        placeholder="City"
+                        {...orgForm.register('address.city')}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>State</Label>
+                      <Input
+                        placeholder="State"
+                        {...orgForm.register('address.state')}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Pincode</Label>
+                      <Input
+                        placeholder="Pincode"
+                        {...orgForm.register('address.pincode')}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Country</Label>
+                      <Input
+                        defaultValue="India"
+                        {...orgForm.register('address.country')}
+                      />
+                    </div>
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label>State</Label>
-                    <Input
-                      placeholder="State"
-                      {...orgForm.register('address.state')}
-                    />
+                <Separator />
+
+                {/* Business Registration */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Business Registration (Optional)
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>GST Number</Label>
+                      <Input
+                        placeholder="e.g., 29ABCDE1234F1Z5"
+                        {...orgForm.register('gstNumber')}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>PAN Number</Label>
+                      <Input
+                        placeholder="e.g., ABCDE1234F"
+                        {...orgForm.register('panNumber')}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Registration Number</Label>
+                      <Input
+                        placeholder="Company registration number"
+                        {...orgForm.register('registrationNumber')}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>CIN Number</Label>
+                      <Input
+                        placeholder="Corporate Identification Number"
+                        {...orgForm.register('cinNumber')}
+                      />
+                    </div>
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label>Pincode</Label>
-                    <Input
-                      placeholder="Pincode"
-                      {...orgForm.register('address.pincode')}
-                    />
-                  </div>
+                <Separator />
 
+                {/* Business Description */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Business Description</h3>
                   <div className="space-y-2">
-                    <Label>Country</Label>
-                    <Input
-                      defaultValue="India"
-                      {...orgForm.register('address.country')}
+                    <Label>About Your Business</Label>
+                    <Textarea
+                      placeholder="Tell us about your business, what you do, your specializations..."
+                      rows={4}
+                      {...orgForm.register('description')}
                     />
                   </div>
                 </div>
-              </div>
 
-              <Separator />
-
-              {/* Business Registration */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Business Registration (Optional)
-                </h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>GST Number</Label>
-                    <Input
-                      placeholder="e.g., 29ABCDE1234F1Z5"
-                      {...orgForm.register('gstNumber')}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>PAN Number</Label>
-                    <Input
-                      placeholder="e.g., ABCDE1234F"
-                      {...orgForm.register('panNumber')}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Registration Number</Label>
-                    <Input
-                      placeholder="Company registration number"
-                      {...orgForm.register('registrationNumber')}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>CIN Number</Label>
-                    <Input
-                      placeholder="Corporate Identification Number"
-                      {...orgForm.register('cinNumber')}
-                    />
-                  </div>
+                <div className="flex justify-between pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCurrentStep(1)}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
+                  <Button type="submit">
+                    Continue
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
                 </div>
-              </div>
-
-              <Separator />
-
-              {/* Business Description */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Business Description</h3>
-                <div className="space-y-2">
-                  <Label>About Your Business</Label>
-                  <Textarea
-                    placeholder="Tell us about your business, what you do, your specializations..."
-                    rows={4}
-                    {...orgForm.register('description')}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-between pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setCurrentStep(1)}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
-                </Button>
-                <Button type="submit">
-                  Continue
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
     );
   }
 
@@ -609,7 +624,7 @@ export default function RegisterOwnerPage() {
       <div className="min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-4xl mx-auto">
           {renderStepIndicator()}
-          
+
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Business Information</CardTitle>
@@ -676,9 +691,9 @@ export default function RegisterOwnerPage() {
                 </div>
 
                 <div className="flex justify-between pt-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => setCurrentStep(2)}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -702,7 +717,7 @@ export default function RegisterOwnerPage() {
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {renderStepIndicator()}
-        
+
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Review & Complete</CardTitle>
@@ -733,9 +748,9 @@ export default function RegisterOwnerPage() {
             </div>
 
             <div className="flex justify-between pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setCurrentStep(3)}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
