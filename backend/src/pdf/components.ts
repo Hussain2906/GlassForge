@@ -43,57 +43,70 @@ export function drawHeader(
   const { title, subtitle, rightMeta, org, logoPath } = opts;
   const { margin } = page;
 
-  // top bar
-  doc.rect(0, 0, doc.page.width, 24).fill(palette.primary);
+  // Soft lavender background header
+  doc.rect(0, 0, doc.page.width, 120).fill(palette.lightBg);
 
-  // org line
-  doc.fillColor('white');
-  useFont(doc, 'App-Bold', 14);
-  doc.text(org.name || 'Organization', margin, 6, { continued: true });
-  useFont(doc, 'App', 10);
-  doc.fillColor('white').text(org.gstNumber ? `  •  GSTIN: ${org.gstNumber}` : '');
+  // Company name with elegant styling
+  doc.fillColor(palette.primary);
+  useFont(doc, 'App-Bold', 24);
+  doc.text(org.name || 'GlassForge', margin, 30);
+  
+  useFont(doc, 'App', 11);
+  doc.fillColor(palette.text).text('Professional Glass Solutions', margin, 60);
 
-  // logo (optional)
+  // logo (optional) - positioned top right
   if (logoPath) {
     try {
-      doc.image(logoPath, doc.page.width - margin - 80, 6, { width: 64, height: 12, fit: [64, 12] });
+      doc.image(logoPath, doc.page.width - margin - 100, 25, { width: 80, height: 40, fit: [80, 40] });
     } catch { /* ignore */ }
   }
 
-  // title + sub
-  doc.fillColor(palette.ink);
-  useFont(doc, 'App-Bold', 20);
-  doc.text(title, margin, 44);
-  if (typeof subtitle === 'string') {
-    useFont(doc, 'App', 11);
-    doc.fillColor(palette.subtext).text(subtitle);
-  }
+  // Document title (QUOTATION/INVOICE/ORDER) - top right
+  const titleWidth = 160;
+  doc.fillColor(palette.primary);
+  useFont(doc, 'App-Bold', 22);
+  doc.text(title, doc.page.width - margin - titleWidth, 30, { width: titleWidth, align: 'right' });
 
-  // right meta badge
+  // Right meta (Quote #, Date) below title
   if (typeof rightMeta === 'string') {
-    const w = 180;
-    doc.roundedRect(doc.page.width - margin - w, 40, w, 36, 6).fillAndStroke('#ffffff', palette.line);
-    useFont(doc, 'App', 10);
-    doc
-      .fillColor(palette.text)
-      .text(rightMeta, doc.page.width - margin - w + 10, 51, { width: w - 20, align: 'right' });
+    useFont(doc, 'App', 11);
+    doc.fillColor(palette.text).text(rightMeta, doc.page.width - margin - titleWidth, 60, { 
+      width: titleWidth, 
+      align: 'right' 
+    });
   }
 
-  // org meta row
-  doc.moveDown(0.4).fillColor(palette.subtext);
-  useFont(doc, 'App', 9);
-  const meta = [org.addressLine1, org.phone, org.email].filter(Boolean).join('  •  ');
-  if (meta) doc.text(meta, margin, 86);
-
-  // divider
-  doc
-    .moveTo(margin, 102)
-    .lineTo(doc.page.width - margin, 102)
-    .strokeColor(palette.line)
-    .lineWidth(1)
-    .stroke();
-
-  doc.moveDown(1);
+  // Customer info card (if subtitle exists)
+  if (typeof subtitle === 'string') {
+    const cardY = 140;
+    const cardHeight = 70;
+    const contentWidth = doc.page.width - margin * 2;
+    
+    // Card background with border
+    doc.roundedRect(margin, cardY, contentWidth, cardHeight, 8)
+       .fillAndStroke(palette.lightBg, palette.line);
+    
+    // "Bill To:" label
+    doc.fillColor(palette.primary);
+    useFont(doc, 'App-Bold', 12);
+    doc.text('Bill To:', margin + 15, cardY + 15);
+    
+    // Customer name
+    doc.fillColor(palette.ink);
+    useFont(doc, 'App', 11);
+    doc.text(subtitle.replace('Bill To: ', ''), margin + 15, cardY + 35);
+    
+    // GST number on the right if available
+    if (org.gstNumber) {
+      doc.fillColor(palette.text);
+      useFont(doc, 'App', 10);
+      doc.text(`GSTIN: ${org.gstNumber}`, margin + 300, cardY + 35);
+    }
+    
+    doc.y = cardY + cardHeight + 20;
+  } else {
+    doc.y = 140;
+  }
 }
 
 export function drawFooter(doc: PDFDocumentType, pageNo?: number) {
@@ -115,6 +128,15 @@ export function drawFooter(doc: PDFDocumentType, pageNo?: number) {
     .lineWidth(1)
     .stroke();
 
+  // Left side - Thank you message
+  useFont(doc, 'App-Bold', 10);
+  doc.fillColor(palette.primary).text(
+    'Thank you for your business!',
+    margin,
+    textY,
+    { width: 300, align: 'left' }
+  );
+
   // right-aligned page number within the content width
   const contentWidth = doc.page.width - margin * 2;
   const current = pageNo ?? (doc as any).__pageNo ?? 1;
@@ -134,13 +156,14 @@ export function drawFooter(doc: PDFDocumentType, pageNo?: number) {
 
 export function pill(doc: PDFDocumentType, text: string, color = palette.primary) {
   const x = doc.x, y = doc.y;
-  const w = doc.widthOfString(text) + 14;
-  const h = 16;
-  doc.roundedRect(x, y, w, h, 8).fill(color);
-  doc.fill('#fff');
-  useFont(doc, 'App-Medium', 9);
-  doc.text(text, x + 7, y + 3);
-  doc.moveDown(1.2);
+  useFont(doc, 'App-Bold', 10);
+  const w = doc.widthOfString(text) + 20;
+  const h = 20;
+  doc.roundedRect(x, y, w, h, 10).fill(color);
+  doc.fillColor('#fff');
+  useFont(doc, 'App-Bold', 10);
+  doc.text(text, x + 10, y + 5);
+  doc.moveDown(1.5);
 }
 
 export function kv(doc: PDFDocumentType, rows: Array<[string, string]>, opts?: { cols?: number }) {
@@ -205,84 +228,108 @@ export function table(doc: PDFDocumentType, cols: Col[], rows: any[], opts?: { z
   // If something went wrong, bail safely
   if (scaled.length === 0 || positions.length === 0) return;
 
-  let y = doc.y + 6;
-  const headerHeight = 18;
-  const rowHeight = 18;
+  let y = doc.y + 10;
+  const headerHeight = 28;
+  const rowHeight = 24;
   const bottomGuard = 100; // keep footer space
+  const contentWidth = doc.page.width - margin * 2;
 
-  // draw header
-  useFont(doc, 'App-Medium', 10);
-  doc.fillColor(palette.text);
+  // draw header with purple background
+  doc.rect(margin, y, contentWidth, headerHeight).fill(palette.primary);
+  
+  useFont(doc, 'App-Bold', 11);
+  doc.fillColor('white');
   scaled.forEach((c, i) => {
-    const x = positions[i] ?? margin; // <- safe index
-    doc.text(c.header, x, y, { width: c.width, align: c.align ?? 'left' });
+    const x = positions[i] ?? margin;
+    doc.text(c.header, x + 8, y + 10, { width: c.width - 16, align: c.align ?? 'left' });
   });
 
   y += headerHeight;
-  doc.moveTo(margin, y).lineTo(doc.page.width - margin, y).strokeColor(palette.line).lineWidth(1).stroke();
-  y += 6;
 
   // helper to start a new page with header again
   const newPageWithHeader = () => {
     doc.addPage();
-    y = doc.y + 6;
-    useFont(doc, 'App-Medium', 10);
-    doc.fillColor(palette.text);
+    y = doc.y + 10;
+    
+    // Redraw header
+    doc.rect(margin, y, contentWidth, headerHeight).fill(palette.primary);
+    useFont(doc, 'App-Bold', 11);
+    doc.fillColor('white');
     scaled.forEach((c, i) => {
-      const x = positions[i] ?? margin; // <- safe index
-      doc.text(c.header, x, y, { width: c.width, align: c.align ?? 'left' });
+      const x = positions[i] ?? margin;
+      doc.text(c.header, x + 8, y + 10, { width: c.width - 16, align: c.align ?? 'left' });
     });
-    y += headerHeight + 6;
+    y += headerHeight;
   };
 
-  // rows
+  // rows with alternating colors
   (rows ?? []).forEach((r, idx) => {
     // page break if needed
     if (y + rowHeight > doc.page.height - bottomGuard) {
       newPageWithHeader();
     }
 
-    // zebra
-    if (opts?.zebra && idx % 2 === 0) {
-      doc
-        .rect(margin, y - 4, doc.page.width - margin * 2, rowHeight + 8)
-        .fillOpacity(1)
-        .fill(palette.zebra)
-        .fillOpacity(1);
-    }
+    // alternating row colors
+    const rowColor = idx % 2 === 0 ? 'white' : palette.zebra;
+    doc.rect(margin, y, contentWidth, rowHeight).fill(rowColor);
 
     // cells
     scaled.forEach((c, i) => {
-      const x = positions[i] ?? margin; // <- safe index
+      const x = positions[i] ?? margin;
       const v = (c.key ? r[c.key] : r[i]) ?? '';
       useFont(doc, 'App', 10);
-      doc.fillColor(palette.ink).text(String(v), x, y, { width: c.width, align: c.align ?? 'left' });
+      doc.fillColor(palette.ink).text(String(v), x + 8, y + 6, { 
+        width: c.width - 16, 
+        align: c.align ?? 'left' 
+      });
     });
 
     y += rowHeight;
   });
 
-  doc.moveDown(1.2);
+  // Table border
+  doc.rect(margin, doc.y + 10, contentWidth, y - (doc.y + 10))
+     .strokeColor(palette.line)
+     .lineWidth(1)
+     .stroke();
+
+  doc.moveDown(1.5);
 }
 
 export function totalsBox(doc: PDFDocumentType, lines: Array<[string, string]>) {
   if (!lines || lines.length === 0) return;
 
   const { margin } = page;
-  const w = 220;
+  const w = 250;
   const x = doc.page.width - margin - w;
-  const y = doc.y + 10;
+  const y = doc.y + 20;
+  const lineHeight = 22;
+  const padding = 15;
+  const boxHeight = lines.length * lineHeight + padding * 2;
 
-  doc.roundedRect(x, y, w, lines.length * 20 + 26, 10).strokeColor(palette.line).lineWidth(1).stroke();
+  // Background box with border
+  doc.roundedRect(x - 10, y, w + 20, boxHeight, 10)
+     .fillAndStroke(palette.lightBg, palette.line);
 
-  let cy = y + 10;
+  let cy = y + padding;
   lines.forEach(([k, v], i) => {
-    useFont(doc, 'App', 10);
-    doc.fillColor(palette.subtext).text(k, x + 12, cy, { width: w / 2 - 12 });
-    useFont(doc, i === lines.length - 1 ? 'App-Bold' : 'App', 11);
-    doc.fillColor(palette.ink).text(v, x + w / 2, cy, { width: w / 2 - 12, align: 'right' });
-    cy += 20;
+    const isTotal = i === lines.length - 1 || k.toLowerCase().includes('total');
+    
+    if (isTotal && i === lines.length - 1) {
+      // Highlight the final total with purple background
+      doc.roundedRect(x - 5, cy - 4, w + 10, lineHeight + 4, 6).fill(palette.primary);
+      useFont(doc, 'App-Bold', 12);
+      doc.fillColor('white').text(k, x, cy, { width: w / 2 });
+      doc.fillColor('white').text(v, x + w / 2, cy, { width: w / 2, align: 'right' });
+    } else {
+      useFont(doc, 'App', 11);
+      doc.fillColor(palette.text).text(k, x, cy, { width: w / 2 });
+      useFont(doc, isTotal ? 'App-Bold' : 'App', 11);
+      doc.fillColor(palette.ink).text(v, x + w / 2, cy, { width: w / 2, align: 'right' });
+    }
+    
+    cy += lineHeight;
   });
 
-  doc.moveDown(lines.length / 2 + 1);
+  doc.moveDown(lines.length / 2 + 2);
 }

@@ -49,7 +49,7 @@ export function invoiceSpec(inv: any): DocSpec {
   if (clientName) header.subtitle = `Bill To: ${clientName}`;
   if (inv.date) header.rightMeta = `Date: ${new Date(inv.date).toLocaleDateString('en-IN')}`;
 
-  const pill = { text: due === 0 ? 'PAID' : 'DUE', color: due === 0 ? palette.accent : palette.warn };
+  const pill = { text: due === 0 ? 'PAID' : 'DUE', color: due === 0 ? palette.success : palette.warn };
 
   return {
     filename: `INVOICE_${inv.invoiceNo}`,

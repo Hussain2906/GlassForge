@@ -5,15 +5,18 @@ import PDFDocument from 'pdfkit';
 type PDFDocumentType = InstanceType<typeof PDFDocument>;
 
 export const palette = {
-  primary: '#0ea5e9',   // sky-500
-  primaryDark: '#0284c7',
-  ink: '#111827',       // gray-900
-  text: '#374151',      // gray-700
-  subtext: '#6b7280',   // gray-500
-  line: '#e5e7eb',      // gray-200
-  zebra: '#f9fafb',     // gray-50
-  accent: '#22c55e',    // green-500
-  warn: '#f59e0b',      // amber-500
+  primary: '#8B5FBF',      // Soft purple - matching your design
+  primaryDark: '#6B4A9F',  // Darker purple
+  secondary: '#E8B4CB',    // Soft pink
+  accent: '#F4C2A1',       // Soft peach
+  ink: '#2D1B3D',          // Dark purple-gray
+  text: '#4A4A4A',         // Medium gray
+  subtext: '#6b7280',      // gray-500
+  line: '#D4C5E8',         // Soft purple-gray border
+  zebra: '#F8F6FF',        // Very light lavender
+  lightBg: '#F8F6FF',      // Very light lavender background
+  success: '#10B981',      // Green for paid status
+  warn: '#F59E0B',         // amber-500
 };
 
 export const page = { margin: 42 };
